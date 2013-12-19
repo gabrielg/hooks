@@ -33,9 +33,9 @@ module Hooks
     #
     #   result = person.run_hook(:before_eating)
     #   result.chain #=> [:washed_hands]
-    def run(scope, *args)
+    def run(scope, *args, &block)
       inject(Results.new) do |results, callback|
-        executed = execute_callback(scope, callback, *args)
+        executed = execute_callback(scope, callback, *args, &block)
 
         return results.halted! unless continue_execution?(executed)
         results << executed
@@ -43,14 +43,15 @@ module Hooks
     end
 
   private
-    def execute_callback(scope, callback, *args)
+    def execute_callback(scope, callback, *args, &block)
       case callback
       when Symbol then
-        scope.send(callback, *args)
+        scope.send(callback, *args, &block)
       when Proc then
+        # TODO: Allow for passing a block in to instance_execed callbacks.
         scope.instance_exec(*args, &callback)
       else
-        callback.send(name, scope, *args)
+        callback.send(name, scope, *args, &block)
       end
     end
 

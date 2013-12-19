@@ -47,12 +47,12 @@ module Hooks
     #   def self.grab_a_beer(*) # and so on...
     #
     # where <tt>Cat.run_hook :after_eight</tt> will call the class method +grab_a_beer+.
-    def run_hook(name, *args)
-      run_hook_for(name, self, *args)
+    def run_hook(name, *args, &block)
+      run_hook_for(name, self, *args, &block)
     end
 
-    def run_hook_for(name, scope, *args)
-      _hooks[name].run(scope, *args)
+    def run_hook_for(name, scope, *args, &block)
+      _hooks[name].run(scope, *args, &block)
     end
 
     # Returns the callbacks for +name+. Handy if you want to run the callbacks yourself, say when
@@ -107,8 +107,8 @@ module Hooks
   #
   #   desert("i want ice cream!")
   #   block.call("i want ice cream!")
-  def run_hook(name, *args)
-    self.class.run_hook_for(name, self, *args)
+  def run_hook(name, *args, &block)
+    self.class.run_hook_for(name, self, *args, &block)
   end
 
   class HookSet < Hash
