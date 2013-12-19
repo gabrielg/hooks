@@ -35,6 +35,8 @@ Now you can add callbacks to your hook declaratively in your class.
 
   after_dinner :have_a_desert   # => refers to Cat#have_a_desert
 
+  after_dinner CheckCalculator.new # => Calls CheckCalculator#after_dinner
+
   def have_a_desert
     puts "Hell, yeah!"
   end
@@ -48,7 +50,7 @@ cat.run_hook :after_dinner
      Hell, yeah!
 ```
 
-Callback blocks and methods will be executed with instance context. Note how `self` in the block refers to the Cat instance.
+Callback blocks and methods will be executed with instance context. Note how `self` in the block refers to the Cat instance. Callback objects will have the instance passed as the first argument to the method.
 
 
 ## Inheritance

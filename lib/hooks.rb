@@ -72,7 +72,7 @@ module Hooks
 
   private
     def setup_hook(name, options)
-      _hooks[name] = Hook.new(options)
+      _hooks[name] = Hook.new(options.merge(:name => name))
       define_hook_writer(name)
     end
 
@@ -83,8 +83,8 @@ module Hooks
     def hook_writer_args(name)
       # DISCUSS: isn't there a simpler way to define a dynamic method? should the internal logic be handled by HooksSet instead?
       str = <<-RUBY_EVAL
-        def #{name}(method=nil, &block)
-          _hooks[:#{name}] << (block || method)
+        def #{name}(method_or_obj=nil, &block)
+          _hooks[:#{name}] << (block || method_or_obj)
         end
       RUBY_EVAL
 

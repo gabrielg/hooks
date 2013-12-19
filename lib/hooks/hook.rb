@@ -44,15 +44,22 @@ module Hooks
 
   private
     def execute_callback(scope, callback, *args)
-      if callback.kind_of?(Symbol)
+      case callback
+      when Symbol then
         scope.send(callback, *args)
-      else
+      when Proc then
         scope.instance_exec(*args, &callback)
+      else
+        callback.send(name, scope, *args)
       end
     end
 
     def continue_execution?(result)
       @options[:halts_on_falsey] ? result : true
+    end
+
+    def name
+      @options[:name]
     end
 
     class Results < Array
