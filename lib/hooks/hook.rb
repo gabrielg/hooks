@@ -33,7 +33,25 @@ module Hooks
     #
     #   result = person.run_hook(:before_eating)
     #   result.chain #=> [:washed_hands]
+    #
+    # If <tt>:around</tt> is enabled:
+    #
+    #   class Person
+    #     define_hook :around_eating, :around => true
+    #
+    #     around_eating :be_hygienic
+    #
+    #     def be_hygienic
+    #       wash_hands
+    #       yield
+    #       do_dishes
+    #     end
+    #   end
+    #
     def run(scope, *args, &block)
+      raise ArgumentError, "A block is required" if around_callback? && !block_given?
+      block = around_block(block) if around_callback?
+
       inject(Results.new) do |results, callback|
         executed = execute_callback(scope, callback, *args, &block)
 
@@ -61,6 +79,19 @@ module Hooks
 
     def name
       @options[:name]
+    end
+
+    def around_callback?
+      @options[:around] == true
+    end
+
+    def around_block(block)
+      call_count = length - 1
+
+      lambda do
+        next(block.call) if call_count == 0
+        call_count -= 1
+      end
     end
 
     class Results < Array

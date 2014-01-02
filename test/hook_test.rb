@@ -7,6 +7,7 @@ class HookTest < MiniTest::Spec
     def test_hook(*args, &block)
       @passed_args = *args
       @passed_block = block
+      yield if block_given?
     end
   end
 
@@ -87,6 +88,66 @@ class HookTest < MiniTest::Spec
       subject.run(Object.new, &expected_block)
 
       assert_equal(expected_block, hook_tester.passed_block)
+    end
+  end
+
+  describe "#run with :around set to true and a block passed" do
+    subject { Hooks::Hook.new({:name => :test_hook, :around => true}) }
+
+    it "raises if no block is passed" do
+      lambda do
+        subject.run(Object.new)
+      end.must_raise(ArgumentError)
+    end
+
+    it "doesn't call the block if an intermediate callback fails to yield" do
+      called = false
+
+      subject << lambda { |around| around.call }
+      subject << lambda { |around| nil }
+      subject << lambda { |around| around.call }
+
+      subject.run(Object.new) do
+        called = true
+      end
+
+      called.must_equal false
+    end
+
+    it "only calls the block once if all callbacks yield appropriately" do
+      call_count = 0
+
+      subject << lambda { |around| around.call }
+      subject << HookTester.new
+      subject << lambda { |around| around.call }
+
+      subject.run(Object.new) do
+        call_count += 1
+      end
+
+      call_count.must_equal 1
+    end
+
+    it "doesn't call the actual block until the very last callback runs" do
+      called = false
+
+      subject << lambda do |around|
+        called.must_equal false
+        around.call
+        called.must_equal false
+      end
+
+      subject << HookTester.new
+
+      subject << lambda do |around|
+        called.must_equal false
+        around.call
+        called.must_equal true
+      end
+
+      subject.run(Object.new) do
+        called = true
+      end
     end
   end
 end
