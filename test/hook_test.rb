@@ -1,6 +1,15 @@
 require 'test_helper'
 
 class HookTest < MiniTest::Spec
+  class HookTester
+    attr_accessor :passed_block, :passed_args
+
+    def test_hook(*args, &block)
+      @passed_args = *args
+      @passed_block = block
+    end
+  end
+
   subject { Hooks::Hook.new({:name => :test_hook}) }
 
   it "exposes array behaviour for callbacks" do
@@ -11,7 +20,7 @@ class HookTest < MiniTest::Spec
   end
 
   describe "#run" do
-    it "executes the same-named method when given a symbol" do
+    it "executes the same-named method when given a Symbol" do
       subject << :captain_hook
 
       scope = MiniTest::Mock.new
@@ -38,13 +47,46 @@ class HookTest < MiniTest::Spec
 
       subject << hook_object
 
-      # hook_object.expect(:kind_of?, false, [Symbol])
-      # hook_object.expect(:kind_of?, false, [Proc])
       hook_object.expect(:test_hook, nil, [scope, :another_arg])
 
       subject.run(scope, :another_arg)
 
       hook_object.verify
+    end
+
+    it "passes the block to the named method with given a Symbol hook" do
+      subject << :test_hook
+
+      expected_block = Proc.new { true }
+
+      # Can't use MiniTest::Mock, because amazingly you can't use it to verify
+      # that block arguments are passed.
+      scope = HookTester.new
+      subject.run(scope, &expected_block)
+
+      # ... and must_equal is blowing up inside minitest when dealing with
+      # blocks.
+      assert_equal(expected_block, scope.passed_block)
+    end
+
+    it "passes the block as a Proc when given a block hook" do
+      expected_block = Proc.new { true }
+      passed_block = nil
+
+      subject << lambda { |passed| passed_block = passed }
+      subject.run(Object.new, &expected_block)
+
+      assert_equal(expected_block, passed_block)
+    end
+
+    it "passes the block to the method when given a hook object" do
+      expected_block = Proc.new { true }
+      hook_tester = HookTester.new
+
+      subject << hook_tester
+      subject.run(Object.new, &expected_block)
+
+      assert_equal(expected_block, hook_tester.passed_block)
     end
   end
 end

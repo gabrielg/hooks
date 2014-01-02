@@ -48,7 +48,7 @@ module Hooks
       when Symbol then
         scope.send(callback, *args, &block)
       when Proc then
-        # TODO: Allow for passing a block in to instance_execed callbacks.
+        args << block if block_given?
         scope.instance_exec(*args, &callback)
       else
         callback.send(name, scope, *args, &block)
