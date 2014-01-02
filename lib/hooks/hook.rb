@@ -50,6 +50,8 @@ module Hooks
     #
     def run(scope, *args, &block)
       raise ArgumentError, "A block is required" if around_callback? && !block_given?
+      return yield if around_callback? && empty?
+
       block = around_block(block) if around_callback?
 
       inject(Results.new) do |results, callback|

@@ -149,6 +149,16 @@ class HookTest < MiniTest::Spec
         called = true
       end
     end
+
+    it "calls the block if no callbacks are set up" do
+      called = false
+
+      subject.run(Object.new) do
+        called = true
+      end
+
+      called.must_equal true
+    end
   end
 end
 
