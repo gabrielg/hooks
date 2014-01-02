@@ -134,7 +134,7 @@ class HookTest < MiniTest::Spec
       subject << lambda do |around|
         called.must_equal false
         around.call
-        called.must_equal false
+        called.must_equal true
       end
 
       subject << HookTester.new
@@ -158,6 +158,39 @@ class HookTest < MiniTest::Spec
       end
 
       called.must_equal true
+    end
+
+    it "calls the callbacks in the expected order" do
+      messages = []
+
+      subject << lambda do |around|
+        messages << "first before"
+        around.call
+        messages << "first after"
+      end
+
+      subject << lambda do |around|
+        messages << "second before"
+        around.call
+        messages << "second after"
+      end
+
+      subject << lambda do |around|
+        messages << "third before"
+        around.call
+        messages << "third after"
+      end
+
+      subject.run(Object.new) { }
+
+      messages.must_equal [
+        "first before",
+        "second before",
+        "third before",
+        "third after",
+        "second after",
+        "first after"
+      ]
     end
   end
 end

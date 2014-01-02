@@ -52,14 +52,33 @@ module Hooks
       raise ArgumentError, "A block is required" if around_callback? && !block_given?
       return yield if around_callback? && empty?
 
-      block = around_block(block) if around_callback?
+      results = Results.new
+      enumerator = to_enum(:each_with_index) { length }
 
-      inject(Results.new) do |results, callback|
-        executed = execute_callback(scope, callback, *args, &block)
+      iterator = proc do
+        callback, idx = enumerator.next
 
+        passed_block =
+          case
+          when around_callback? && last_callback?(idx) then block
+          when around_callback? then iterator
+          when block_given? then block
+          end
+
+        executed = execute_callback(scope, callback, *args, &passed_block)
         return results.halted! unless continue_execution?(executed)
         results << executed
       end
+
+      if around_callback?
+        iterator.call
+      else
+        iterator.call while true
+      end
+
+      return results
+    rescue StopIteration
+      return results
     end
 
   private
@@ -87,13 +106,8 @@ module Hooks
       @options[:around] == true
     end
 
-    def around_block(block)
-      call_count = length - 1
-
-      lambda do
-        next(block.call) if call_count == 0
-        call_count -= 1
-      end
+    def last_callback?(callback_index)
+      length - 1 == callback_index
     end
 
     class Results < Array
